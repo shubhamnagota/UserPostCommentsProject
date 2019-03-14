@@ -27,4 +27,6 @@ $ npm start
 - Then test the app by following apis:
   - GetUsers : http://localhost:4000/api/users [GET]
   - GetUserPosts : http://localhost:4000/api/posts?userId=1 [GET]
-  - UpdateUserAvatar : http://localhost:4000/api/updateUserAvatar [PUT][note: you have to pass userid and avatar parameters in the body as json for updateuseravatar api]
+  - GetAllUsersWithPosts : http://localhost:4000/api/getAllUsersWithPosts [GET]
+  - UpdateUserAvatar : http://localhost:4000/api/updateUserAvatar [PUT]
+    Note: you have to pass userid and avatar parameters in the body as json for updateuseravatar api

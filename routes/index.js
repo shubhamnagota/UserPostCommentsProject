@@ -1,97 +1,59 @@
 const router = require("express").Router();
-const MongoClient = require("mongodb").MongoClient;
-
-const { MONGO_URL } = require("../config/config.json");
+const controller = require("../controllers");
 
 router.get("/users", getUsers);
 router.get("/posts", getUserPosts);
+router.get("/getAllUsersWithPosts", getAllUsersWithPosts);
 router.put("/updateUserAvatar", updateUserAvatar);
 
 function getUsers(req, res) {
-  MongoClient.connect(
-    MONGO_URL,
-    {
-      useNewUrlParser: true
-    },
-    function(err, db) {
-      if (err) throw err;
-      let dbo = db.db("master");
-      dbo
-        .collection("users")
-        .find({})
-        .toArray(function(err, data) {
-          if (err)
-            return res.status(400).json({
-              success: false,
-              message: err
-            });
-
-          res.status(200).json({ success: true, data });
-          db.close();
-        });
+  controller.getUsers().then(responseJson => {
+    if (responseJson.success === false) {
+      res.status(400).json(responseJson);
     }
-  );
+    res.status(200).json(responseJson);
+  });
 }
 
 function getUserPosts(req, res) {
   let userId = req.query.userId;
-  MongoClient.connect(
-    MONGO_URL,
-    {
-      useNewUrlParser: true
-    },
-    function(err, db) {
-      if (err) throw err;
-      let dbo = db.db(`user_${userId}`);
-      dbo
-        .collection("posts")
-        .find({})
-        .toArray(function(err, result) {
-          if (err)
-            return res.status(400).json({
-              success: false,
-              message: err
-            });
-          if (result.length === 0)
-            return res.status(404).json({
-              success: false,
-              message: "No posts or user id does not exists"
-            });
-          res.status(200).json({ success: true, result });
-          db.close();
-        });
+  controller.getUserPosts(userId).then(responseJson => {
+    if (responseJson.success === false) {
+      res.status(400).json(responseJson);
     }
-  );
+    res.status(200).json(responseJson);
+  });
 }
+
 function updateUserAvatar(req, res) {
   let userAvatar = req.body.avatarUrl;
   let userId = req.body.userId;
-  MongoClient.connect(
-    MONGO_URL,
-    {
-      useNewUrlParser: true
-    },
-    function(err, db) {
-      if (err) throw err;
-      let dbo = db.db("master");
-      dbo
-        .collection("users")
-        .findOneAndUpdate(
-          { id: userId },
-          { $set: { avatar: userAvatar } },
-          { upsert: true, returnNewDocument: true }
-        )
-        .then(data => {
-          return res.status(200).json({ success: true, data });
-        })
-        .catch(err => {
-          return res.status(400).json({
-            success: false,
-            message: err
-          });
-        })
-        .finally(() => db.close());
+  controller.updateUserAvatar(userId, userAvatar).then(responseJson => {
+    if (responseJson.success === false) {
+      res.status(400).json(responseJson);
     }
-  );
+    res.status(200).json(responseJson);
+  });
 }
+
+function getAllUsersWithPosts(req, res) {
+  controller.getUsers().then(users => {
+    let usersIdArr = [];
+    let promiseArr = [];
+    users.data.forEach(user => {
+      usersIdArr.push(user.id);
+      promiseArr.push(controller.getUserPosts(user.id));
+    });
+    Promise.all(promiseArr).then(result => {
+      let usersJsonWithPosts_Array = result.map((postsData, index) => {
+        let usersJsonWithPosts = {};
+        usersJsonWithPosts.userId = usersIdArr[index];
+        usersJsonWithPosts.posts = postsData.data;
+        return usersJsonWithPosts;
+      });
+      res.json({ success: true, data: usersJsonWithPosts_Array });
+    });
+  });
+}
+
 module.exports = router;

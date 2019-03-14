@@ -111,6 +111,10 @@ writeDataToMongo = (dbName, collectionName, data) => {
     function(err, db) {
       if (err) throw err;
       let dbo = db.db(dbName);
+      // Drop the database if exists
+      dbo.dropDatabase();
+
+      // Create new database with the records fetched from API.
       dbo.collection(collectionName).insertMany(data, function(err, res) {
         if (err) throw err;
         console.log(
